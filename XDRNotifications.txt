@@ -1,0 +1,373 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "contentVersion": "1.0.0.0",
+        "triggers": {
+            "Recurrence": {
+                "type": "Recurrence",
+                "recurrence": {
+                    "interval": 1,
+                    "frequency": "Day",
+                    "timeZone": "Israel Standard Time"
+                }
+            }
+        },
+        "actions": {
+            "Query_Alerts_Info": {
+                "type": "Http",
+                "inputs": {
+                    "uri": "https://api.security.microsoft.com/api/advancedhunting/run",
+                    "method": "POST",
+                    "headers": {
+                        "Content-Type": "application/json"
+                    },
+                    "body": "@parameters('AlertsCountKQL')",
+                    "authentication": {
+                        "type": "ActiveDirectoryOAuth",
+                        "authority": "",
+                        "tenant": "@{parameters('TenantID')}",
+                        "audience": "https://api.security.microsoft.com",
+                        "clientId": "@{parameters('ClientID')}",
+                        "secret": "@{parameters('Secret')}"
+                    }
+                },
+                "runAfter": {},
+                "runtimeConfiguration": {
+                    "contentTransfer": {
+                        "transferMode": "Chunked"
+                    }
+                }
+            },
+            "Query_OAuth_Apps": {
+                "type": "Http",
+                "inputs": {
+                    "uri": "https://api.security.microsoft.com/api/advancedhunting/run",
+                    "method": "POST",
+                    "headers": {
+                        "Content-Type": "application/json"
+                    },
+                    "body": "@parameters('KQL-OAuth')",
+                    "authentication": {
+                        "type": "ActiveDirectoryOAuth",
+                        "authority": "",
+                        "tenant": "@{parameters('TenantID')}",
+                        "audience": "https://api.security.microsoft.com",
+                        "clientId": "@{parameters('ClientID')}",
+                        "secret": "@{parameters('Secret')}"
+                    }
+                },
+                "runAfter": {},
+                "runtimeConfiguration": {
+                    "contentTransfer": {
+                        "transferMode": "Chunked"
+                    }
+                }
+            },
+            "Query_Total_Identities": {
+                "type": "Http",
+                "inputs": {
+                    "uri": "https://api.security.microsoft.com/api/advancedhunting/run",
+                    "method": "POST",
+                    "headers": {
+                        "Content-Type": "application/json"
+                    },
+                    "body": "@parameters('TotalIdentitiesKQL')",
+                    "authentication": {
+                        "type": "ActiveDirectoryOAuth",
+                        "authority": "",
+                        "tenant": "@{parameters('TenantID')}",
+                        "audience": "https://api.security.microsoft.com",
+                        "clientId": "@{parameters('ClientID')}",
+                        "secret": "@{parameters('Secret')}"
+                    }
+                },
+                "runAfter": {},
+                "runtimeConfiguration": {
+                    "contentTransfer": {
+                        "transferMode": "Chunked"
+                    }
+                }
+            },
+            "Query_Phishing_Events": {
+                "type": "Http",
+                "inputs": {
+                    "uri": "https://api.security.microsoft.com/api/advancedhunting/run",
+                    "method": "POST",
+                    "headers": {
+                        "Content-Type": "application/json"
+                    },
+                    "body": "@parameters('PhishingEventsKQL')",
+                    "authentication": {
+                        "type": "ActiveDirectoryOAuth",
+                        "authority": "",
+                        "tenant": "@{parameters('TenantID')}",
+                        "audience": "https://api.security.microsoft.com",
+                        "clientId": "@{parameters('ClientID')}",
+                        "secret": "@{parameters('Secret')}"
+                    }
+                },
+                "runAfter": {},
+                "runtimeConfiguration": {
+                    "contentTransfer": {
+                        "transferMode": "Chunked"
+                    }
+                }
+            },
+            "Query_Device_Malware": {
+                "type": "Http",
+                "inputs": {
+                    "uri": "https://api.security.microsoft.com/api/advancedhunting/run",
+                    "method": "POST",
+                    "headers": {
+                        "Content-Type": "application/json"
+                    },
+                    "body": "@parameters('DeviceMalwareKQL')",
+                    "authentication": {
+                        "type": "ActiveDirectoryOAuth",
+                        "authority": "",
+                        "tenant": "@{parameters('TenantID')}",
+                        "audience": "https://api.security.microsoft.com",
+                        "clientId": "@{parameters('ClientID')}",
+                        "secret": "@{parameters('Secret')}"
+                    }
+                },
+                "runAfter": {},
+                "runtimeConfiguration": {
+                    "contentTransfer": {
+                        "transferMode": "Chunked"
+                    }
+                }
+            },
+            "Parse_Alerts_JSON": {
+                "type": "ParseJson",
+                "inputs": {
+                    "content": "@body('Query_Alerts_Info')",
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "Results": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "TotalAlerts": {
+                                            "type": "integer"
+                                        },
+                                        "HighAlerts": {
+                                            "type": "integer"
+                                        },
+                                        "MediumAlerts": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "runAfter": {
+                    "Query_Alerts_Info": [
+                        "Succeeded"
+                    ]
+                }
+            },
+            "Parse_OAuth_JSON": {
+                "type": "ParseJson",
+                "inputs": {
+                    "content": "@body('Query_OAuth_Apps')",
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "Results": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "total": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "runAfter": {
+                    "Query_OAuth_Apps": [
+                        "Succeeded"
+                    ]
+                }
+            },
+            "Parse_TotalIdentities_JSON": {
+                "type": "ParseJson",
+                "inputs": {
+                    "content": "@body('Query_Total_Identities')",
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "Results": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "DistinctIdentities": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "runAfter": {
+                    "Query_Total_Identities": [
+                        "Succeeded"
+                    ]
+                }
+            },
+            "Parse_PhishingEvents_JSON": {
+                "type": "ParseJson",
+                "inputs": {
+                    "content": "@body('Query_Phishing_Events')",
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "Results": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "Count": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "runAfter": {
+                    "Query_Phishing_Events": [
+                        "Succeeded"
+                    ]
+                }
+            },
+            "Parse_DeviceMalware_JSON": {
+                "type": "ParseJson",
+                "inputs": {
+                    "content": "@body('Query_Device_Malware')",
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "Results": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "TotalMalwareEvents": {
+                                            "type": "integer"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "runAfter": {
+                    "Query_Device_Malware": [
+                        "Succeeded"
+                    ]
+                }
+            },
+            "Send_an_email_(V2)": {
+                "type": "ApiConnection",
+                "inputs": {
+                    "host": {
+                        "connection": {
+                            "name": "@parameters('$connections')['office365']['connectionId']"
+                        }
+                    },
+                    "method": "post",
+                    "body": {
+                        "To": "<RECIPIENT_EMAIL>",
+                        "Subject": "XDR Security Dashboard Report",
+                        "Body": "<div style='background-color: #000000; color: #ffffff; padding: 15px; border-radius: 8px; font-family: Arial, sans-serif;'><h2 style='color: #ffffff; margin-top: 0;'><u><b>🔒 XDR Security Dashboard Report</b></u></h2><p style='color: #cccccc;'><i>Generated on: @{convertTimeZone(utcNow(), 'UTC', 'Israel Standard Time', 'yyyy-MM-dd HH:mm:ss')} IST</i></p><br><table border='1' cellpadding='8' cellspacing='0' style='border-collapse: collapse; width: 100%; max-width: 600px; background-color: #000000; border: 1px solid #333333;'><thead style='background-color: #1a1a1a; color: #ffffff;'><tr><th style='text-align: left; padding: 10px; border: 1px solid #333333; color: #ffffff;'>Metric</th><th style='text-align: center; padding: 10px; border: 1px solid #333333; color: #ffffff;'>Count</th></tr></thead><tbody><tr style='background-color: #1a1a1a;'><td style='padding: 8px; font-weight: bold; border: 1px solid #333333; color: #ffffff;'>🚨 <b>Total Alerts (30 days)</b></td><td style='padding: 8px; text-align: center; border: 1px solid #333333;'><a href='https://security.microsoft.com/alerts' target='_blank' style='color: #ffff00; font-weight: bold; text-decoration: none; font-size: 18px;'>@{if(greater(length(body('Parse_Alerts_JSON')?['Results']), 0), body('Parse_Alerts_JSON')?['Results'][0]?['TotalAlerts'], 0)}</a></td></tr><tr style='background-color: #000000;'><td style='padding: 8px; font-weight: bold; border: 1px solid #333333; color: #ffffff;'>🔴 <b>High Severity Alerts</b></td><td style='padding: 8px; text-align: center; border: 1px solid #333333;'><a href='https://security.microsoft.com/alerts?filters=eyJzZXZlcml0eSI6WyJIaWdoIl19' target='_blank' style='color: #ff4444; font-weight: bold; text-decoration: none; font-size: 18px;'>@{if(greater(length(body('Parse_Alerts_JSON')?['Results']), 0), body('Parse_Alerts_JSON')?['Results'][0]?['HighAlerts'], 0)}</a></td></tr><tr style='background-color: #1a1a1a;'><td style='padding: 8px; font-weight: bold; border: 1px solid #333333; color: #ffffff;'>🟡 <b>Medium Severity Alerts</b></td><td style='padding: 8px; text-align: center; border: 1px solid #333333;'><a href='https://security.microsoft.com/alerts?filters=eyJzZXZlcml0eSI6WyJIaWdoIl19' target='_blank' style='color: #ffaa00; font-weight: bold; text-decoration: none; font-size: 18px;'>@{if(greater(length(body('Parse_Alerts_JSON')?['Results']), 0), body('Parse_Alerts_JSON')?['Results'][0]?['MediumAlerts'], 0)}</a></td></tr><tr style='background-color: #000000;'><td style='padding: 8px; font-weight: bold; border: 1px solid #333333; color: #ffffff;'>🔐 <b>OAuth Applications</b></td><td style='padding: 8px; text-align: center; font-weight: bold; color: #00d4ff; border: 1px solid #333333;'><a href='https://security.microsoft.com/cloudapps/app-governance?viewid=overview&tid=<TENANT_ID>' target='_blank' style='color: #ffaa00; font-weight: bold; text-decoration: none; font-size: 18px;'>@{if(greater(length(body('Parse_OAuth_JSON')?['Results']), 0), body('Parse_OAuth_JSON')?['Results'][0]?['total'], 0)}</td></tr><tr style='background-color: #1a1a1a;'><td style='padding: 8px; font-weight: bold; border: 1px solid #333333; color: #ffffff;'>👥 <b>Total Identities</b></td><td style='padding: 8px; text-align: center; font-weight: bold; color: #00d4ff; border: 1px solid #333333;'><a href='https://security.microsoft.com/identities/dashboard?tid=<TENANT_ID>' target='_blank' style='color: #ffaa00; font-weight: bold; text-decoration: none; font-size: 18px;'>@{if(greater(length(body('Parse_TotalIdentities_JSON')?['Results']), 0), body('Parse_TotalIdentities_JSON')?['Results'][0]?['DistinctIdentities'], 0)}</td></tr><tr style='background-color: #000000;'><td style='padding: 8px; font-weight: bold; border: 1px solid #333333; color: #ffffff;'>🦠 <b>Device Malware Events</b></td><td style='padding: 8px; text-align: center; font-weight: bold; color: #ff4444; border: 1px solid #333333;'><a href='https://security.microsoft.com/alerts?tid=<TENANT_ID>' target='_blank' style='color: #ffaa00; font-weight: bold; text-decoration: none; font-size: 18px;'>@{if(greater(length(body('Parse_DeviceMalware_JSON')?['Results']), 0), body('Parse_DeviceMalware_JSON')?['Results'][0]?['TotalMalwareEvents'], 0)}</td></tr></tbody></table><br><div style='background-color: #1a1a1a; padding: 12px; border-radius: 8px; border: 1px solid #333333; margin-top: 20px;'><h3 style='color: #ffffff; margin-top: 0; margin-bottom: 10px;'>🎣 <b>Phishing Events Analysis</b></h3><p style='color: #ffffff; margin-bottom: 8px;'>Total Phishing Events Detected: <span style='color: #ff4444; font-weight: bold; font-size: 18px;'>@{if(greater(length(body('Parse_PhishingEvents_JSON')?['Results']), 0), body('Parse_PhishingEvents_JSON')?['Results'][0]?['Count'], 0)}</span></p><p style='margin-bottom: 0;'><a href='https://security.microsoft.com/v2/advanced-hunting?query=H4sIAGIaImkAAz2NOwqAQBBDXy14h-3UQ1iJvYUXEBFW8IdfFA9vRsQi7EtmZ-IICcjpqWjpRDsNAysLjls68EpmyVGKjSrNS04msf3zSuyNiSjkWjkvTr4bC5sarGPW7HpvZYxKrcmRSvXvY-09WsW7DZgAAAA&timeRangeId=month' target='_blank' style='background-color: #0078d4; color: #ffffff; padding: 8px 16px; text-decoration: none; border-radius: 4px; font-weight: bold; display: inline-block;'>🔍 View Detailed Analysis in Security Portal</a></p></div><br><p style='font-size: 12px; color: #888888; margin-bottom: 0;'><i>📊 This report is automatically generated every 24 hours</i></p></div>",
+                        "Sensitivity": "defa4170-0d19-0005-0004-bc88714345d2",
+                        "From": "<SENDER_EMAIL>",
+                        "Importance": "Normal"
+                    },
+                    "path": "/v2/Mail"
+                },
+                "runAfter": {
+                    "Parse_Alerts_JSON": [
+                        "Succeeded"
+                    ],
+                    "Parse_OAuth_JSON": [
+                        "Succeeded"
+                    ],
+                    "Parse_TotalIdentities_JSON": [
+                        "Succeeded"
+                    ],
+                    "Parse_PhishingEvents_JSON": [
+                        "Succeeded"
+                    ],
+                    "Parse_DeviceMalware_JSON": [
+                        "Succeeded"
+                    ]
+                }
+            }
+        },
+        "outputs": {},
+        "parameters": {
+            "AlertsCountKQL": {
+                "defaultValue": "{\n  \"Query\": \"AlertInfo | where Timestamp >= ago(30d) | summarize TotalAlerts = count(), HighAlerts = countif(Severity == 'High'), MediumAlerts = countif(Severity == 'Medium')\"\n}",
+                "type": "String"
+            },
+            "KQL-OAuth": {
+                "defaultValue": "{\n    \"Query\":\"OAuthAppInfo | summarize total = count_distinct(OAuthAppId)\"\n}",
+                "type": "String"
+            },
+            "TotalIdentitiesKQL": {
+                "defaultValue": "{\n    \"Query\":\"IdentityInfo | summarize DistinctIdentities = dcount(AccountObjectId)\"\n}",
+                "type": "String"
+            },
+            "PhishingEventsKQL": {
+                "defaultValue": "{\n    \"Query\":\"EmailEvents | where ThreatTypes has ('Phish') | summarize Count = count()\"\n}",
+                "type": "String"
+            },
+            "DeviceMalwareKQL": {
+                "defaultValue": "{\n    \"Query\":\"DeviceEvents | where Timestamp >= ago(30d) | where ActionType == 'MalwareDetected' | summarize TotalMalwareEvents = count()\"\n}",
+                "type": "String"
+            },
+            "TenantID": {
+                "defaultValue": "AAAA-AAAAA-AAAAA-AAAAAAA",
+                "type": "String"
+            },
+            "ClientID": {
+                "defaultValue": "AAAA-AAAAA-AAAAA-AAAAAAA",
+                "type": "String"
+            },
+            "Secret": {
+                "defaultValue": "AAAA-AAAAA-AAAAA-AAAAAAA",
+                "type": "String"
+            },
+            "$connections": {
+                "type": "Object",
+                "defaultValue": {}
+            }
+        }
+    },
+    "parameters": {
+        "$connections": {
+            "type": "Object",
+            "value": {
+                "office365": {
+                    "id": "/subscriptions/<SUBSCRIPTION_ID>/providers/Microsoft.Web/locations/<LOCATION>/managedApis/office365",
+                    "connectionId": "/subscriptions/<SUBSCRIPTION_ID>/resourceGroups/<RESOURCE_GROUP>/providers/Microsoft.Web/connections/office365",
+                    "connectionName": "office365",
+                    "connectionProperties": {}
+                }
+            }
+        }
+    }
+}

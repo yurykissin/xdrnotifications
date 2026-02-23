@@ -1,0 +1,203 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/0.1.2-preview/CreateUIDefinition.MultiVm.json#",
+    "handler": "Microsoft.Azure.CreateUIDef",
+    "version": "0.1.2-preview",
+    "parameters": {
+        "config": {
+            "isWizard": true,
+            "basics": {
+                "description": "### 🔒 XDR Security Dashboard Notifications\nDeploy a Logic App that runs on a schedule, queries Microsoft 365 Defender Advanced Hunting APIs, and sends an HTML security dashboard report via email.\n\n**What gets deployed:**\n- Logic App with daily recurrence trigger\n- Office 365 API connection for sending email\n\n⚠️ After deployment, you must authorize the Office 365 connection in the Azure Portal.",
+                "location": {
+                    "label": "Region",
+                    "toolTip": "Azure region for all resources",
+                    "allowedValues": [
+                        "israelcentral",
+                        "westeurope",
+                        "eastus",
+                        "eastus2",
+                        "westus2",
+                        "northeurope",
+                        "uksouth",
+                        "centralus"
+                    ]
+                }
+            }
+        },
+        "basics": [
+            {
+                "name": "logicAppName",
+                "type": "Microsoft.Common.TextBox",
+                "label": "Logic App Name",
+                "defaultValue": "XDRNotifications",
+                "toolTip": "Name of the Logic App resource to create",
+                "constraints": {
+                    "required": true,
+                    "regex": "^[a-zA-Z0-9-_]{3,64}$",
+                    "validationMessage": "Must be 3-64 characters, alphanumeric, hyphens, or underscores"
+                }
+            }
+        ],
+        "steps": [
+            {
+                "name": "authentication",
+                "label": "Authentication",
+                "bladeTitle": "Microsoft 365 Defender API Settings",
+                "elements": [
+                    {
+                        "name": "authPrerequisites",
+                        "type": "Microsoft.Common.InfoBox",
+                        "visible": true,
+                        "options": {
+                            "icon": "Warning",
+                            "text": "Before proceeding, you must create an App Registration in Azure AD. Follow these steps:\n\n1. Go to Azure Portal → Azure Active Directory → App registrations → New registration\n2. Name it (e.g. 'XDR-Dashboard-Reader') and click Register\n3. Copy the **Application (client) ID** — you'll need it below\n4. Go to **Certificates & secrets** → New client secret → set an expiry → click Add\n5. Copy the **Secret Value** immediately (it won't be shown again) — you'll need it below\n6. Go to **API permissions** → Add a permission → APIs my organization uses → search 'Microsoft Threat Protection'\n7. Select **Application permissions** → check **AdvancedHunting.Read.All** → click Add permissions\n8. Click **Grant admin consent** for your organization\n\nThe Tenant ID is automatically detected from your Azure subscription."
+                        }
+                    },
+                    {
+                        "name": "clientId",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "App Registration Client ID",
+                        "toolTip": "The Application (client) ID from step 3 above. Found in Azure AD → App registrations → your app → Overview page.",
+                        "constraints": {
+                            "required": true,
+                            "regex": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+                            "validationMessage": "Must be a valid GUID (e.g., 12345678-abcd-1234-abcd-123456789012)"
+                        }
+                    },
+                    {
+                        "name": "clientSecret",
+                        "type": "Microsoft.Common.PasswordBox",
+                        "label": {
+                            "password": "Client Secret Value",
+                            "confirmPassword": "Confirm Client Secret"
+                        },
+                        "toolTip": "The secret Value (not the Secret ID) from step 5 above. Found in Azure AD → App registrations → your app → Certificates & secrets.",
+                        "constraints": {
+                            "required": true
+                        },
+                        "options": {
+                            "hideConfirmation": false
+                        }
+                    }
+                ]
+            },
+            {
+                "name": "emailSettings",
+                "label": "Email Settings",
+                "bladeTitle": "Email Notification Settings",
+                "elements": [
+                    {
+                        "name": "emailInfo",
+                        "type": "Microsoft.Common.InfoBox",
+                        "visible": true,
+                        "options": {
+                            "icon": "Info",
+                            "text": "Configure the email sender and recipient for the security dashboard report. After deployment, you must go to the API connection resource and click 'Edit API connection' → 'Authorize' to sign in with the sender mailbox."
+                        }
+                    },
+                    {
+                        "name": "emailRecipient",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "Recipient Email Address",
+                        "toolTip": "The email address that will receive the daily XDR security dashboard report (e.g., soc@company.com or your-team-dl@company.com)",
+                        "constraints": {
+                            "required": true,
+                            "regex": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
+                            "validationMessage": "Must be a valid email address"
+                        }
+                    },
+                    {
+                        "name": "emailSender",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "Sender Email Address",
+                        "toolTip": "The email address that sends the report. Must be a valid Office 365 mailbox in your tenant that you can sign into during the post-deployment authorization step.",
+                        "constraints": {
+                            "required": true,
+                            "regex": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$",
+                            "validationMessage": "Must be a valid email address"
+                        }
+                    },
+                    {
+                        "name": "office365ConnectionName",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "Office 365 Connection Name",
+                        "defaultValue": "office365",
+                        "toolTip": "A display name for the API connection resource created in your resource group. This is just a resource name — you can leave the default 'office365' or use something like 'office365-soc-reports' for clarity.",
+                        "constraints": {
+                            "required": true,
+                            "regex": "^[a-zA-Z0-9-_]{1,64}$",
+                            "validationMessage": "Must be 1-64 alphanumeric characters, hyphens, or underscores"
+                        }
+                    }
+                ]
+            },
+            {
+                "name": "schedule",
+                "label": "Schedule",
+                "bladeTitle": "Recurrence Schedule",
+                "elements": [
+                    {
+                        "name": "scheduleInfo",
+                        "type": "Microsoft.Common.InfoBox",
+                        "visible": true,
+                        "options": {
+                            "icon": "Info",
+                            "text": "Configure how often the security dashboard report is generated and sent. Default is once per day."
+                        }
+                    },
+                    {
+                        "name": "recurrenceInterval",
+                        "type": "Microsoft.Common.Slider",
+                        "label": "Run Every",
+                        "subLabel": "units (see frequency below)",
+                        "toolTip": "How often the Logic App runs",
+                        "min": 1,
+                        "max": 30,
+                        "defaultValue": 1,
+                        "constraints": {
+                            "required": true
+                        }
+                    },
+                    {
+                        "name": "recurrenceFrequency",
+                        "type": "Microsoft.Common.DropDown",
+                        "label": "Frequency",
+                        "defaultValue": "Day",
+                        "toolTip": "Frequency unit for the schedule",
+                        "constraints": {
+                            "required": true,
+                            "allowedValues": [
+                                { "label": "Minute", "value": "Minute" },
+                                { "label": "Hour", "value": "Hour" },
+                                { "label": "Day", "value": "Day" },
+                                { "label": "Week", "value": "Week" },
+                                { "label": "Month", "value": "Month" }
+                            ]
+                        }
+                    },
+                    {
+                        "name": "recurrenceTimeZone",
+                        "type": "Microsoft.Common.TextBox",
+                        "label": "Time Zone",
+                        "defaultValue": "Israel Standard Time",
+                        "toolTip": "Windows time zone name for the schedule (e.g., 'UTC', 'Pacific Standard Time', 'Israel Standard Time')",
+                        "constraints": {
+                            "required": true
+                        }
+                    }
+                ]
+            }
+        ],
+        "outputs": {
+            "logicAppName": "[basics('logicAppName')]",
+            "location": "[location()]",
+            "clientId": "[steps('authentication').clientId]",
+            "clientSecret": "[steps('authentication').clientSecret]",
+            "emailRecipient": "[steps('emailSettings').emailRecipient]",
+            "emailSender": "[steps('emailSettings').emailSender]",
+            "office365ConnectionName": "[steps('emailSettings').office365ConnectionName]",
+            "recurrenceInterval": "[steps('schedule').recurrenceInterval]",
+            "recurrenceFrequency": "[steps('schedule').recurrenceFrequency]",
+            "recurrenceTimeZone": "[steps('schedule').recurrenceTimeZone]"
+        }
+    }
+}
