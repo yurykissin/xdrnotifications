@@ -1,6 +1,7 @@
 # 🔒 XDR Security Dashboard Notifications
 
 Automated Azure Logic App that queries Microsoft 365 Defender Advanced Hunting APIs on a schedule and sends a styled HTML security dashboard report via email.
+<img width="616" height="474" alt="image" src="https://github.com/user-attachments/assets/54429bc2-8f12-4436-94db-517260b6d048" />
 
 ## What Gets Deployed
 
